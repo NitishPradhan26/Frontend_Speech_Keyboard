@@ -18,7 +18,10 @@ struct APIConfig {
         case updatePrompt(String)
         case deletePrompt(String)
         case updateTranscript(Int)
+        case deleteTranscript(Int)
         case userTranscripts(String)
+        case userPrompts(String)
+        case getPromptById(String)
         
         var path: String {
             switch self {
@@ -36,8 +39,14 @@ struct APIConfig {
                 return "/prompts/\(id)"
             case .updateTranscript(let id):
                 return "/transcripts/\(id)"
+            case .deleteTranscript(let id):
+                return "/transcripts/\(id)"
             case .userTranscripts(let userId):
                 return "/transcripts/user/\(userId)"
+            case .userPrompts(let userId):
+                return "/prompts/user/\(userId)"
+            case .getPromptById(let id):
+                return "/prompts/\(id)"
             }
         }
         

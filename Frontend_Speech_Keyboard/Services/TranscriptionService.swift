@@ -11,6 +11,7 @@ import AVFoundation
 protocol TranscriptionServiceProtocol {
     func transcribeAudio(_ audioURL: URL, prompt: String?, userId: String) async throws -> TranscriptionData
     func updateTranscript(id: Int, finalText: String) async throws -> TranscriptionData
+    func deleteTranscript(id: Int) async throws -> Bool
     func getUserTranscripts(userId: String) async throws -> [TranscriptionData]
 }
 
@@ -213,6 +214,57 @@ class TranscriptionService: TranscriptionServiceProtocol {
                 return data
             } else {
                 throw TranscriptionError.serverError(updateResponse.message ?? "Update failed")
+            }
+            
+        } catch let error as TranscriptionError {
+            throw error
+        } catch let decodingError as DecodingError {
+            throw TranscriptionError.decodingError(decodingError)
+        } catch {
+            throw TranscriptionError.networkError(error)
+        }
+    }
+    
+    // MARK: - Delete Transcript
+    
+    func deleteTranscript(id: Int) async throws -> Bool {
+        guard let url = APIConfig.Endpoints.deleteTranscript(id).fullURL else {
+            throw TranscriptionError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = APIConfig.HTTPMethod.DELETE.rawValue
+        
+        // Add default headers
+        for (key, value) in APIConfig.defaultHeaders {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            // Check HTTP response
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode != 200 {
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("Delete transcript error response: \(responseString)")
+                    }
+                    throw TranscriptionError.serverError("HTTP \(httpResponse.statusCode)")
+                }
+            }
+            
+            // Debug: Print raw response
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Delete transcript API response: \(responseString)")
+            }
+            
+            // Decode response
+            let deleteResponse = try JSONDecoder().decode(DeleteTranscriptResponse.self, from: data)
+            
+            if deleteResponse.success {
+                return true
+            } else {
+                throw TranscriptionError.serverError(deleteResponse.message ?? "Delete failed")
             }
             
         } catch let error as TranscriptionError {

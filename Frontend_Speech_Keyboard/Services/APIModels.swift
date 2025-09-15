@@ -48,6 +48,73 @@ struct TranscriptHistoryResponse: Codable {
     let data: [TranscriptionData]
 }
 
+struct DeleteTranscriptResponse: Codable {
+    let success: Bool
+    let message: String?
+}
+
+// MARK: - Prompt Models
+struct PromptData: Codable, Identifiable, Equatable {
+    let id: Int
+    let userId: Int?
+    let title: String
+    let content: String
+    let isDefault: Bool?
+    let createdAt: String?
+    let updatedAt: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case title
+        case content
+        case isDefault = "is_default"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct CreatePromptRequest: Codable {
+    let userId: Int?
+    let title: String
+    let content: String
+    let isDefault: Bool?
+    
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case title
+        case content
+        case isDefault = "is_default"
+    }
+}
+
+struct UpdatePromptRequest: Codable {
+    let title: String?
+    let content: String?
+    let isDefault: Bool?
+    
+    enum CodingKeys: String, CodingKey {
+        case title
+        case content
+        case isDefault = "is_default"
+    }
+}
+
+struct PromptResponse: Codable {
+    let success: Bool
+    let message: String?
+    let data: PromptData?
+    let error: String?
+}
+
+struct PromptsListResponse: Codable {
+    let success: Bool
+    let count: Int
+    let data: [PromptData]
+    let message: String?
+    let error: String?
+}
+
 struct TranscriptionData: Codable {
     let transcriptId: Int? // Backend returns savedTranscript?.id (number)
     let rawTranscript: String
@@ -153,6 +220,7 @@ enum TranscriptionError: Error, LocalizedError {
     case decodingError(Error)
     case serverError(String)
     case unknownError
+    case promptError(String)
     
     var errorDescription: String? {
         switch self {
@@ -168,6 +236,8 @@ enum TranscriptionError: Error, LocalizedError {
             return "Server error: \(message)"
         case .unknownError:
             return "An unknown error occurred"
+        case .promptError(let message):
+            return "Prompt error: \(message)"
         }
     }
 }

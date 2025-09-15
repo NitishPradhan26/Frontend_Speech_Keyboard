@@ -10,7 +10,10 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var recordingManager = RecordingManager.shared
     @StateObject private var transcriptionViewModel = TranscriptionViewModel()
-    @State private var recordings: [URL] = []
+    @StateObject private var promptViewModel = PromptViewModel()
+    @State private var showingAddPrompt = false
+    
+    private let userId: String = "1" // TODO: Get from authentication system
     
     var body: some View {
         TabView {
@@ -23,6 +26,85 @@ struct ContentView: View {
                             .font(.system(size: 40))
                             .foregroundColor(.blue)
                             .padding(.top)
+                        
+                        // Prompt Selector
+                        GroupBox("Select Prompt") {
+                            VStack(alignment: .leading, spacing: 12) {
+                                if promptViewModel.isLoading {
+                                    HStack {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                        Text("Loading prompts...")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                } else if promptViewModel.prompts.isEmpty {
+                                    VStack(spacing: 8) {
+                                        Text("No prompts available")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        Button("Create First Prompt") {
+                                            showingAddPrompt = true
+                                        }
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                    }
+                                } else {
+                                    HStack {
+                                        Menu {
+                                            ForEach(promptViewModel.prompts) { prompt in
+                                                Button(prompt.title) {
+                                                    promptViewModel.selectPrompt(prompt)
+                                                }
+                                            }
+                                            
+                                            Divider()
+                                            
+                                            Button("Add New Prompt") {
+                                                showingAddPrompt = true
+                                            }
+                                        } label: {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(promptViewModel.selectedPromptTitle ?? "Select a prompt")
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(.primary)
+                                                    
+                                                    if let content = promptViewModel.selectedPromptContent {
+                                                        Text(content)
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                            .lineLimit(2)
+                                                    }
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                Image(systemName: "chevron.down")
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .padding(8)
+                                            .background(Color(.systemGray6))
+                                            .cornerRadius(8)
+                                        }
+                                        
+                                        Button(action: {
+                                            showingAddPrompt = true
+                                        }) {
+                                            Image(systemName: "plus.circle")
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                }
+                                
+                                if let error = promptViewModel.errorMessage {
+                                    Text("Error: \(error)")
+                                        .foregroundColor(.red)
+                                        .font(.caption)
+                                }
+                            }
+                        }
                         
                         // Recording Status
                         GroupBox("Recording Status") {
@@ -128,47 +210,6 @@ struct ContentView: View {
                     }
                 }
                 
-                // Recordings List
-                GroupBox("Recent Recordings") {
-                    if recordings.isEmpty {
-                        Text("No recordings yet")
-                            .foregroundColor(.secondary)
-                            .padding()
-                    } else {
-                        LazyVStack {
-                            ForEach(recordings, id: \.self) { url in
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(url.lastPathComponent)
-                                            .font(.caption)
-                                        Text(formatFileDate(url))
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Button("Transcribe") {
-                                        transcriptionViewModel.transcribeAudio(at: url)
-                                    }
-                                    .foregroundColor(.blue)
-                                    .disabled(transcriptionViewModel.isTranscribing)
-                                    
-                                    Button("Delete") {
-                                        try? recordingManager.deleteRecording(at: url)
-                                        refreshRecordings()
-                                    }
-                                    .foregroundColor(.red)
-                                }
-                                .padding(.vertical, 4)
-                                
-                                if url != recordings.last {
-                                    Divider()
-                                }
-                            }
-                        }
-                    }
-                }
                 
                 // Instructions
                 Text("Use the Speech Keyboard in any app to start recording!")
@@ -183,10 +224,17 @@ struct ContentView: View {
                 .navigationBarTitleDisplayMode(.large)
             }
             .onAppear {
-                refreshRecordings()
+                Task {
+                    await promptViewModel.loadPrompts(userId: userId)
+                    updateRecordingPrompt()
+                }
             }
-            .onChange(of: recordingManager.recordingState) { _ in
-                refreshRecordings()
+            .onChange(of: promptViewModel.selectedPrompt) { selectedPrompt in
+                // Update the current prompt for auto-transcription
+                updateRecordingPrompt()
+            }
+            .sheet(isPresented: $showingAddPrompt) {
+                AddPromptView(promptViewModel: promptViewModel, userId: Int(userId) ?? 1)
             }
             .tabItem {
                 Image(systemName: "mic")
@@ -217,26 +265,22 @@ struct ContentView: View {
         }
     }
     
-    private func refreshRecordings() {
-        recordings = recordingManager.getAllRecordings()
-    }
-    
     private func formatDuration(_ duration: TimeInterval) -> String {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
     
-    private func formatFileDate(_ url: URL) -> String {
-        guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-              let date = attributes[.creationDate] as? Date else {
-            return "Unknown date"
+    private func updateRecordingPrompt() {
+        // Store current prompt info in UserDefaults for the RecordingManager to use
+        let defaults = UserDefaults.standard
+        if let selectedPrompt = promptViewModel.selectedPrompt {
+            defaults.set(selectedPrompt.content, forKey: "currentPromptContent")
+            defaults.set(userId, forKey: "currentUserId")
+        } else {
+            defaults.removeObject(forKey: "currentPromptContent")
+            defaults.removeObject(forKey: "currentUserId")
         }
-        
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
     }
 }
 

@@ -33,7 +33,9 @@ class TranscriptionViewModel: ObservableObject {
             queue: .main
         ) { [weak self] notification in
             guard let audioURL = notification.userInfo?["audioURL"] as? URL else { return }
-            self?.transcribeAudio(at: audioURL)
+            let prompt = notification.userInfo?["prompt"] as? String
+            let userId = notification.userInfo?["userId"] as? String ?? "1"
+            self?.transcribeAudio(at: audioURL, prompt: prompt, userId: userId)
         }
     }
     
@@ -148,6 +150,19 @@ class TranscriptionViewModel: ObservableObject {
     func refreshHistory(userId: String) async {
         hasLoadedHistoryOnce = false
         await loadTranscriptionHistory(userId: userId)
+    }
+    
+    func deleteHistoryTranscript(id: Int) async {
+        do {
+            let success = try await transcriptionService.deleteTranscript(id: id)
+            
+            if success {
+                // Remove from the history array
+                transcriptionHistory.removeAll { $0.id == id }
+            }
+        } catch {
+            transcriptionError = "Failed to delete transcript: \(error.localizedDescription)"
+        }
     }
     
     deinit {

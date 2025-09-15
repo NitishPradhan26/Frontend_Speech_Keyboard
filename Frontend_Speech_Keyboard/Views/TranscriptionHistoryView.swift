@@ -55,6 +55,11 @@ struct TranscriptionHistoryView: View {
                                         Task {
                                             await viewModel.updateHistoryTranscript(id: id, finalText: finalText)
                                         }
+                                    },
+                                    onDelete: { id in
+                                        Task {
+                                            await viewModel.deleteHistoryTranscript(id: id)
+                                        }
                                     }
                                 )
                             }
@@ -87,14 +92,17 @@ struct TranscriptionHistoryView: View {
 struct TranscriptionHistoryCard: View {
     let transcript: TranscriptionData
     let onUpdate: (Int, String) -> Void
+    let onDelete: (Int) -> Void
     
     @State private var isEditing = false
     @State private var editedText: String
     @State private var showingEditSheet = false
+    @State private var showingDeleteAlert = false
     
-    init(transcript: TranscriptionData, onUpdate: @escaping (Int, String) -> Void) {
+    init(transcript: TranscriptionData, onUpdate: @escaping (Int, String) -> Void, onDelete: @escaping (Int) -> Void) {
         self.transcript = transcript
         self.onUpdate = onUpdate
+        self.onDelete = onDelete
         self._editedText = State(initialValue: transcript.textFinal ?? transcript.finalText)
     }
     
@@ -119,11 +127,19 @@ struct TranscriptionHistoryCard: View {
                 
                 Spacer()
                 
-                Button("Edit") {
-                    showingEditSheet = true
+                HStack(spacing: 12) {
+                    Button("Edit") {
+                        showingEditSheet = true
+                    }
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    
+                    Button("Delete") {
+                        showingDeleteAlert = true
+                    }
+                    .font(.caption)
+                    .foregroundColor(.red)
                 }
-                .font(.caption)
-                .foregroundColor(.blue)
             }
             
             // Raw transcript
@@ -177,6 +193,16 @@ struct TranscriptionHistoryCard: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+        .alert("Delete Transcription", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let id = transcript.id {
+                    onDelete(id)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this transcription? This action cannot be undone.")
+        }
         .sheet(isPresented: $showingEditSheet) {
             NavigationView {
                 VStack(alignment: .leading, spacing: 16) {

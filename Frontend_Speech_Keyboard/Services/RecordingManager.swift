@@ -353,10 +353,19 @@ extension RecordingManager: AVAudioRecorderDelegate {
                 
                 // Auto-transcribe the completed recording
                 if let audioURL = currentFilePath {
+                    let defaults = UserDefaults.standard
+                    let promptContent = defaults.string(forKey: "currentPromptContent")
+                    let userId = defaults.string(forKey: "currentUserId") ?? "1"
+                    
+                    var userInfo: [String: Any] = ["audioURL": audioURL, "userId": userId]
+                    if let prompt = promptContent {
+                        userInfo["prompt"] = prompt
+                    }
+                    
                     NotificationCenter.default.post(
                         name: NSNotification.Name("RecordingCompleted"),
                         object: nil,
-                        userInfo: ["audioURL": audioURL]
+                        userInfo: userInfo
                     )
                 }
             } else {
