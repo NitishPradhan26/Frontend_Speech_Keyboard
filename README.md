@@ -96,17 +96,7 @@ struct APIConfig {
 ```
 **Backend Setup**: See the companion [Backend Speech Keyboard](../Backend_Speech_Keyboard) repository for complete backend deployment instructions.
 
-4. **Set up App Groups**
-- Create App Group in Apple Developer Console
-- Add App Group capability to both main app and keyboard extension
-- Update shared container identifiers in project settings
-
-5. **Configure Firebase**
-- Add `GoogleService-Info.plist` to the project
-- Configure Firebase Authentication
-- Set up Sign in with Apple
-
-6. **Build and run**
+4. **Build and run**
 - Select your target device
 - Build and install the main app
 - Enable the keyboard extension in iOS Settings
@@ -134,44 +124,26 @@ The app communicates with the backend using these endpoints:
 - `PUT /prompts/:id` - Update prompt
 - `DELETE /prompts/:id` - Delete prompt
 
-### App Groups Configuration
-Required for sharing data between main app and keyboard extension:
-```
-Group ID: group.com.yourcompany.speechkeyboard
-```
-
-### Firebase Configuration
-1. **Create Firebase Project**
-   - Go to [Firebase Console](https://console.firebase.google.com)
-   - Create new project
-   - Enable Authentication and Firestore
-
-2. **Configure Authentication**
-   - Enable Sign in with Apple provider
-   - Add your app's bundle ID
-   - Configure Apple Developer Console
-
-3. **Download Configuration**
-   - Download `GoogleService-Info.plist`
-   - Add to Xcode project (both targets)
+### Future Features (Not Yet Implemented)
+- **Custom Keyboard Extension**: Full keyboard implementation is planned for future releases
+- **Firebase Authentication**: User authentication system to be implemented
+- **App Groups**: Data sharing between app and keyboard extension when keyboard is ready
 
 ## 📖 Usage
 
-### Setting Up the Keyboard
-1. **Install the app** from the App Store or build from source
-2. **Open iOS Settings** → General → Keyboard → Keyboards
-3. **Add New Keyboard** → Select "Speech Keyboard"
-4. **Allow Full Access** - Required for audio recording and API communication
-5. **Grant permissions** - Microphone access for recording
+### Using the App
+1. **Install and run the app** from Xcode or build from source
+2. **Grant microphone permissions** when prompted
+3. **Use the main app interface** for recording and transcription
+4. **Custom keyboard functionality** will be available in future releases
 
 ### Recording and Transcription
-1. **Open any app** with text input (Messages, Notes, etc.)
-2. **Switch to Speech Keyboard** - Tap the globe icon
-3. **Select a prompt** - Choose from your custom prompts or use default
-4. **Start recording** - Tap the microphone button
-5. **Speak clearly** - Audio is processed in real-time
-6. **Review and edit** - Text appears with edit options
-7. **Insert text** - Tap to insert into the active text field
+1. **Open the main app**
+2. **Select a prompt** - Choose from your custom prompts or use default
+3. **Start recording** - Tap the microphone button in the app
+4. **Speak clearly** - Audio is processed and transcribed
+5. **Review and edit** - Text appears with edit options
+6. **Copy to clipboard** - Use transcribed text in other apps
 
 ### Managing Prompts
 1. **Open main app** → Navigate to Prompts tab
@@ -363,10 +335,9 @@ static var defaultHeaders: [String: String] {
 
 ### Common Issues
 
-**Keyboard not appearing**
-- Check iOS Settings → Keyboards → Speech Keyboard is enabled
-- Verify Full Access is granted
-- Restart the app and try again
+**Custom keyboard functionality**
+- Custom keyboard extension is planned for future releases
+- Currently use the main app for all recording and transcription
 
 **Transcription not working**
 - Verify microphone permissions are granted
