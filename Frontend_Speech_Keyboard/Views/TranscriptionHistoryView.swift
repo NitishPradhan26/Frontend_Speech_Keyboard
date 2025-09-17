@@ -253,6 +253,7 @@ struct TranscriptionHistoryCard: View {
                     }
                 }
             }
+            
         }
     }
     

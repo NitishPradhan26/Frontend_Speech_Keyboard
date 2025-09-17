@@ -8,7 +8,7 @@
 import Foundation
 
 struct APIConfig {
-    static let baseURL = "https://speech-keyboard-backend.onrender.com/api"
+    static let baseURL = "Your backend url"
     
     enum Endpoints {
         case transcribe
